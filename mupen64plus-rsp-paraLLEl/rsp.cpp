@@ -1,5 +1,6 @@
 #include "rsp.hpp"
 #include <utility>
+#include <iostream>
 
 using namespace std;
 
@@ -987,17 +988,119 @@ Func CPU::jit_region(uint64_t hash, unsigned pc, unsigned count)
                rs = (instr >> 21) & 31;
                rd = (instr >> 11) & 31;
                imm = (instr >> 7) & 15;
-               static const char *lwc2_ops[32] = {
-                  "LBV", "LSV", "LLV", "LDV", "LQV", "LRV", "LPV", "LUV",
-                  "LHV", nullptr, nullptr, "LTV", nullptr, nullptr, nullptr, nullptr,
-                  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-               };
-               auto *op = lwc2_ops[rd];
-               if (op)
+               switch(rd)
                {
-                  APPEND("RSP_%s(STATE, %u, %u, %d, %u);\n", op, rt, imm, simm, rs);
-                  DISASM("%s %u, %u, %d, %u\n", op, rt, imm, simm, rs);
+                  case 0: //LBV
+                     //void RSP_LBV(RSP::CPUState *rsp, unsigned rt, unsigned e, int offset, unsigned base)
+                     //APPEND("RSP_LBV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 1) & 0xfff;\n",rs,simm); 
+                     APPEND("((unsigned char*)(STATE->cp2.regs[%u].e))[MES(%u)] = READ_MEM_U8(STATE->dmem, _addr);}\n",rt,imm); 
+                     DISASM("LBV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  case 1: //LSV
+                     //APPEND("RSP_LSV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     if (imm & 1) break;
+                     imm >>= 1;
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 2) & 0xfff;\n",rs,simm); 
+                     APPEND("unsigned correction = _addr & 3;\n");
+                     APPEND("if (correction != 3){\n");
+                     APPEND("unsigned short result;\n");
+                     APPEND("if (correction == 1)\n");
+                     APPEND("result = (READ_MEM_U8(STATE->dmem, _addr + 0) << 8) | (READ_MEM_U8(STATE->dmem, _addr + 1) << 0);\n");
+                     APPEND("else \n result = READ_MEM_U16(STATE->dmem, _addr);\n");
+                     APPEND("STATE->cp2.regs[%u].e[%d] = result;}}\n",rt,imm);
+                     DISASM("LSV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  case 2: //LLV
+                     //APPEND("RSP_LLV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     if (imm & 1) break;
+                     imm >>= 1;
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 4) & 0xfff;\n",rs,simm); 
+                     APPEND("if (!(_addr & 1)){\n");
+                     APPEND("STATE->cp2.regs[%u].e[%u] = READ_MEM_U16(STATE->dmem, _addr);\n",rt,imm);
+                     APPEND("STATE->cp2.regs[%u].e[(%u + 1) & 7] = READ_MEM_U16(STATE->dmem, (_addr + 2) & 0xfff);}}\n",rt,imm);
+                     imm <<= 1;
+                     DISASM("LLV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  case 3: //LDV
+                     //APPEND("RSP_LDV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     if (imm & 1) break;
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 8) & 0xfff;\n",rs,simm);
+                     APPEND("short *reg = STATE->cp2.regs[%u].e;\n",rt);
+                     imm >>= 1;
+                     APPEND("if (_addr & 1){;\n");
+                     APPEND("reg[%u + 0] = (READ_MEM_U8(STATE->dmem, _addr + 0) << 8) | READ_MEM_U8(STATE->dmem, _addr + 1);\n",imm);
+                     APPEND("reg[%u + 1] = (READ_MEM_U8(STATE->dmem, _addr + 2) << 8) | READ_MEM_U8(STATE->dmem, _addr + 3);\n",imm);
+                     APPEND("reg[%u + 2] = (READ_MEM_U8(STATE->dmem, _addr + 4) << 8) | READ_MEM_U8(STATE->dmem, _addr + 5);\n",imm);
+                     APPEND("reg[%u + 3] = (READ_MEM_U8(STATE->dmem, addr + 6) << 8) | READ_MEM_U8(STATE->dmem, _addr + 7);\n",imm);
+                     APPEND("}else{\n");
+                     APPEND("reg[%u + 0] = READ_MEM_U16(STATE->dmem, _addr);\n",imm);
+                     APPEND("reg[%u + 1] = READ_MEM_U16(STATE->dmem, (_addr + 2) & 0xfff);\n",imm);
+                     APPEND("reg[%u + 2] = READ_MEM_U16(STATE->dmem, (_addr + 4) & 0xfff);\n",imm);
+                     APPEND("reg[%u + 3] = READ_MEM_U16(STATE->dmem, (_addr + 6) & 0xfff);}}\n",imm);
+                     imm <<= 1;
+                     DISASM("LDV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  case 4: //LQV
+                     //APPEND("RSP_LQV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     if (imm & 1) break;
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 16) & 0xfff;\n",rs,simm);
+                     APPEND("if (!(_addr & 1)){\n");
+                     APPEND("unsigned b = (_addr & 0xf) >> 1;\n");
+                     imm >>= 1;
+                     APPEND("short *reg = STATE->cp2.regs[%u].e;unsigned e = %u;\n",rt,imm);
+                     APPEND("for (unsigned i = b; i < 8; i++, e++, _addr += 2)\n");
+                     APPEND("reg[e] = READ_MEM_U16(STATE->dmem, _addr & 0xfff);}}\n");
+                     imm <<= 1;
+                     DISASM("LQV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  case 6: //LPV
+                     //APPEND("RSP_LPV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     if (imm & 1) break;
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 8) & 0xfff;\n",rs,simm);
+                     APPEND("short *reg = STATE->cp2.regs[%u].e;\n",rt);
+                     APPEND("for (unsigned i = 0; i < 8; i++){\n");
+                     APPEND("reg[i] = READ_MEM_U8(STATE->dmem, (_addr + i) & 0xfff) << 8;}}\n");
+                     DISASM("LPV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  case 7: //LUV
+                     //APPEND("RSP_LUV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 8) & 0xfff;\n",rs,simm);
+                     APPEND("short *reg = STATE->cp2.regs[%u].e;\n",rt);
+                     APPEND("if (%u != 0){\n",imm);
+                     APPEND("unsigned e = %u;_addr += -e & 0xf;\n",imm);
+                     APPEND("for (unsigned b = 0; b < 8; b++){\n");
+                     APPEND("reg[b] = READ_MEM_U8(STATE->dmem, _addr) << 7;\n");
+                     APPEND("--e; _addr -= e ? 0 : 16; ++_addr;}\n");
+                     APPEND("}else{\n");
+                     APPEND("for (unsigned i = 0; i < 8; i++){\n");
+                     APPEND("reg[i] = READ_MEM_U8(STATE->dmem, (_addr + i) & 0xfff) << 7;}}}\n");
+                     DISASM("LUV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  case 11: //LTV
+                     //APPEND("RSP_LTV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                    if (imm & 1) break;
+                    if (rt & 7) break;
+                    APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 16) & 0xfff;\n",rt,simm);
+                    APPEND("if (!(_addr & 0xf)){\n");
+                    APPEND("for (unsigned i = 0; i < 8; i++)\n");
+                    APPEND("STATE->cp2.regs[%u + i].e[(-%u / 2 + i) & 7] = READ_MEM_U16(STATE->dmem, _addr + 2 * i);}}\n",rt,imm);
+                    DISASM("LTV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  default:
+                       static const char *lwc2_ops[32] = {
+                          "LBV", "LSV", "LLV", "LDV", "LQV", "LRV", "LPV", "LUV",
+                          "LHV", nullptr, nullptr, "LTV", nullptr, nullptr, nullptr, nullptr,
+                          nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                          nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                       };
+                       auto *op = lwc2_ops[rd];
+                       if (op)
+                       {
+                          APPEND("RSP_%s(STATE, %u, %u, %d, %u);\n", op, rt, imm, simm, rs);
+                          DISASM("%s %u, %u, %d, %u\n", op, rt, imm, simm, rs);
+                       }
+                  break;
                }
 
 #ifdef INTENSE_DEBUG
@@ -1016,19 +1119,98 @@ Func CPU::jit_region(uint64_t hash, unsigned pc, unsigned count)
                rs = (instr >> 21) & 31;
                rd = (instr >> 11) & 31;
                imm = (instr >> 7) & 15;
-               static const char *swc2_ops[32] = {
-                  "SBV", "SSV", "SLV", "SDV", "SQV", "SRV", "SPV", "SUV",
-                  "SHV", "SFV", nullptr, "STV", nullptr, nullptr, nullptr, nullptr,
-                  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-               };
-               auto *op = swc2_ops[rd];
-               if (op)
+               switch(rd)
                {
-                  APPEND("RSP_%s(STATE, %u, %u, %d, %u);\n", op, rt, imm, simm, rs);
-                  DISASM("%s %u, %u, %d, %u\n", op, rt, imm, simm, rs);
-               }
+                  case 0: //SBV
+                     //void RSP_SBV(RSP::CPUState *rsp, unsigned rt, unsigned e, int offset, unsigned base)
+                     //APPEND("RSP_SBV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                     APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 1) & 0xfff;\n",rs,simm);  
+                     APPEND("unsigned char v = ((unsigned char*)(STATE->cp2.regs[%u].e))[MES(%u)];\n",rt,imm);
+                     APPEND("WRITE_MEM_U8(STATE->dmem, _addr, v);}\n");
+                     DISASM("SBV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+                  
+                  case 1: //SSV
+                     //APPEND("RSP_SSV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+		     APPEND("{unsigned _addr = (STATE->sr[%u] + (%d * 2)) & 0xfff;\n",rs,simm);
+	             APPEND("unsigned char v0 = ((unsigned char*)(STATE->cp2.regs[%u].e))[MES(%u)];\n",rt,imm);
+		     APPEND("unsigned char v1 = ((unsigned char*)(STATE->cp2.regs[%u].e))[MES(((%u+1) & 0xf))];\n",rt,imm);
+                     APPEND("WRITE_MEM_U8(STATE->dmem, _addr, v0);\n");
+                     APPEND("WRITE_MEM_U8(STATE->dmem, (_addr + 1) & 0xfff, v1);}\n");
+                     DISASM("SSV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
 
+                  case 2: //SLV
+                      //APPEND("RSP_SLV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                      if ((imm & 1) || (imm > 0xc)) break;
+                      APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 4) & 0xfff;\n",rs,simm);
+                      APPEND("if (!(_addr & 1)){ \n");
+                      imm >>= 1;
+		      APPEND("unsigned short v0 = STATE->cp2.regs[%u].e[%u];\n",rt,imm);
+		      APPEND("unsigned short v1 = STATE->cp2.regs[%u].e[%u + 1];\n",rt,imm);
+		      APPEND("WRITE_MEM_U16(STATE->dmem, _addr, v0);\n");
+		      APPEND("WRITE_MEM_U16(STATE->dmem, (_addr + 2) & 0xfff, v1);}};\n");
+                      imm <<= 1;
+                      DISASM("SLV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+
+                  case 3: //SDV
+                      //APPEND("RSP_SDV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                      APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 8) & 0xfff;\n",rs,simm);
+		      APPEND("if ((%u > 8) || (%u & 1) || (_addr & 1)){\n",imm,imm);
+		      APPEND("for (unsigned i = 0; i < 8; i++){\n");
+		      APPEND("WRITE_MEM_U8(STATE->dmem, (_addr + i) & 0xfff,\n");
+		      APPEND("((unsigned char*)(STATE->cp2.regs[%u].e))[MES((%u + i) & 0xf)]);\n",rt,imm);
+		      APPEND("}}else{\n");
+		      imm >>= 1;
+		      APPEND("for (unsigned i = 0; i < 4; i++){\n");
+		      APPEND("WRITE_MEM_U16(STATE->dmem, (_addr + 2 * i) & 0xfff,STATE->cp2.regs[%u].e[%u + i]);\n",rt,imm);
+		      APPEND("}}}\n");
+                      DISASM("SDV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+
+                  case 4: //SQV
+                      //APPEND("RSP_SQV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+		      APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 16) & 0xfff;\n",rs,simm);
+		      APPEND("if (!(_addr & 1)){;\n");
+		      APPEND("unsigned b = _addr & 0xf; short *reg = STATE->cp2.regs[%u].e;\n",rt);
+		      APPEND("if (%u != 0){\n",imm);
+		      APPEND("for (unsigned i = 0; i < 16 - b; i++, _addr++) {\n");
+		      APPEND("WRITE_MEM_U8(STATE->dmem, _addr & 0xfff,\n");
+		      APPEND("((unsigned char*)(reg))[MES((%u + i) & 0xf)]);\n",imm);
+		      APPEND("}}else{ b >>= 1;unsigned e = %u;\n",imm);
+		      APPEND("for (unsigned i = b; i < 8; i++, e++, _addr += 2)\n");
+		      APPEND("WRITE_MEM_U16(STATE->dmem, _addr & 0xfff, reg[e]);\n");
+		      APPEND("}}}\n");
+                      DISASM("SQV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+
+                  case 8: //SHV
+                      //APPEND("RSP_SQV(STATE, %u, %u, %d, %u);\n", rt, imm, simm, rs);
+                      if (imm != 0) break;
+                      APPEND("{unsigned _addr = (STATE->sr[%u] + %d * 16) & 0xfff;\n",rs,simm);
+                      APPEND("short *reg = STATE->cp2.regs[%u].e;\n",rt);
+                      APPEND("for (unsigned i = 0; i < 8; i++)\n");
+                      APPEND("WRITE_MEM_U8(STATE->dmem, (_addr + 2 * i) & 0xfff, ((short)(reg[i])) >> 7);}\n");
+                      DISASM("SHV %u, %u, %d, %u\n", rt, imm, simm, rs);
+                  break;
+
+                  default:
+                     static const char *swc2_ops[32] = {
+                       "SBV", "SSV", "SLV", "SDV", "SQV", "SRV", "SPV", "SUV",
+                       "SHV", "SFV", nullptr, "STV", nullptr, nullptr, nullptr, nullptr,
+                       nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                       nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                     };
+                     auto *op = swc2_ops[rd];
+                     if (op)
+                     {
+                       APPEND("RSP_%s(STATE, %u, %u, %d, %u);\n", op, rt, imm, simm, rs);
+                       DISASM("%s %u, %u, %d, %u\n", op, rt, imm, simm, rs);
+                      }
+                  break;
+
+               }
 #ifdef INTENSE_DEBUG
                APPEND("RSP_DEBUG(STATE, \"SWC2\", %u, %u);\n", (pc + i + 1) << 2, instr);
 #endif
@@ -1056,6 +1238,32 @@ Func CPU::jit_region(uint64_t hash, unsigned pc, unsigned count)
 
    // Emit helper code.
    full_code += R"DELIM(
+
+struct AlignedRSPVector1
+{
+  short e[8];
+}__attribute__((aligned(16)));
+
+struct AlignedRSPVector2
+{
+  short e[8 * 2];
+}__attribute__((aligned(16)));
+
+struct AlignedRSPVector3
+{
+  short e[8 * 3];
+}__attribute__((aligned(16)));
+
+struct CP2
+{
+   struct AlignedRSPVector1 regs[32];
+   struct AlignedRSPVector2 flags[3];
+   struct AlignedRSPVector3 acc;
+   short div_out;
+   short div_in;
+   char dp_flag;
+}__attribute__((aligned(64)));
+
 struct cpu_state
 {
    unsigned pc;
@@ -1065,7 +1273,10 @@ struct cpu_state
    unsigned sr[32];
    unsigned *dmem;
    unsigned *imem;
+   unsigned *rdram;
+   struct CP2  cp2;
 };
+
 #define UNLIKELY(x) __builtin_expect(!!x, 0)
 #define LIKELY(x) __builtin_expect(!!x, 1)
 #define MASK_SA(x) ((x) & 31)
@@ -1238,6 +1449,8 @@ DECL_COP2(RESERVED);
    full_code += body;
    full_code += "}\n";
 
+   std::cout << full_code;
+
    unique_ptr<Block> block(new Block(symbol_table));
    if (!block->compile(hash, full_code))
       return nullptr;
@@ -1347,7 +1560,7 @@ void CPU::enter(uint32_t pc)
    pc &= IMEM_SIZE - 1;
    uint32_t word_pc = pc >> 2;
    auto &block = blocks[word_pc];
-
+   //static unsigned countex, countre, countcomp;
    if (!block)
    {
       unsigned end = (pc + (CODE_BLOCK_SIZE * 2)) >> CODE_BLOCK_SIZE_LOG2;
@@ -1358,15 +1571,20 @@ void CPU::enter(uint32_t pc)
       uint64_t hash = hash_imem(word_pc, end - word_pc);
       auto itr = cached_blocks[word_pc].find(hash);
       if (itr != cached_blocks[word_pc].end())
+      {
          block = itr->second->get_func();
+         //fprintf(stdout, "jit reuse #%u comp: %u exec: %u \n", ++countre, countcomp, countex);
+      }
       else
       {
          //static unsigned count;
          //fprintf(stderr, "JIT region #%u\n", ++count);
          block = jit_region(hash, word_pc, end - word_pc);
+         //fprintf(stdout, "jit compile #%u reuse: %u exec: %u \n", ++countcomp, countre, countex);
       }
-   }
-   block(this, &state);
+    }
+    block(this, &state);
+    //countex++;
 }
 
 ReturnMode CPU::run()
