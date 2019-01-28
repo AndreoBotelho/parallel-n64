@@ -9,11 +9,11 @@ static inline __m128i rsp_vaddc(__m128i vs, __m128i vt,
   __m128i zero, __m128i *sn) {
   __m128i sat_sum, unsat_sum;
 
-  sat_sum = _mm_adds_epu16(vs, vt);
-  unsat_sum = _mm_add_epi16(vs, vt);
+  sat_sum = simde_mm_adds_epu16(vs, vt);
+  unsat_sum = simde_mm_add_epi16(vs, vt);
 
-  *sn = _mm_cmpeq_epi16(sat_sum, unsat_sum);
-  *sn = _mm_cmpeq_epi16(*sn, zero);
+  *sn = simde_mm_cmpeq_epi16(sat_sum, unsat_sum);
+  *sn = simde_mm_cmpeq_epi16(*sn, zero);
 
   return unsat_sum;
 }

@@ -10,7 +10,7 @@
 #ifndef __arch_rsp_h__
 #define __arch_rsp_h__
 
-#ifdef __SSE4_2__
+/*#ifdef __SSE4_2__
 #include <nmmintrin.h>
 #elif defined(__SSE4_1__)
 #include <smmintrin.h>
@@ -18,9 +18,12 @@
 #include <tmmintrin.h>
 #elif defined(__SSE3__)
 #include <pmmintrin.h>
-#else
+#elif defined(SIMDE_SSE_NEON) && defined(__ARM_NEON__)*/
+#include "simde/simde/x86/sse2.h"
+#define __m128i simde__m128i
+/*#else
 #include <emmintrin.h>
-#endif
+#endif*/
 
 #include <stdint.h>
 
@@ -37,10 +40,10 @@ extern const uint16_t shuffle_keys[16][8];
 
 static inline __m128i rsp_vect_load_and_shuffle_operand(
   const uint16_t *src, unsigned element) {
-  __m128i operand = _mm_load_si128((__m128i*) src);
-  __m128i key = _mm_load_si128((__m128i*) shuffle_keys[element]);
+  __m128i operand = simde_mm_load_si128((__m128i*) src);
+  __m128i key = simde_mm_load_si128((__m128i*) shuffle_keys[element]);
 
-  return _mm_shuffle_epi8(operand, key);
+  return simde_mm_shuffle_epi8(operand, key);
 }
 #else
 __m128i rsp_vect_load_and_shuffle_operand(
@@ -49,12 +52,12 @@ __m128i rsp_vect_load_and_shuffle_operand(
 
 // Loads a vector without shuffling its elements.
 static inline __m128i rsp_vect_load_unshuffled_operand(const uint16_t *src) {
-  return _mm_load_si128((__m128i *) src);
+  return simde_mm_load_si128((__m128i *) src);
 }
 
 // Writes an operand back to memory.
 static inline void rsp_vect_write_operand(uint16_t *dest, __m128i src) {
-  _mm_store_si128((__m128i*) dest, src);
+  simde_mm_store_si128((__m128i*) dest, src);
 }
 
 static inline __m128i read_acc_lo(const uint16_t *acc) {
@@ -108,10 +111,10 @@ static inline void write_vce(uint16_t *vce, __m128i vce_r) {
 
 // Returns scalar bitmasks for VCO/VCC/VCE.
 static inline int16_t rsp_get_flags(const uint16_t *flags) {
-  return (int16_t) _mm_movemask_epi8(
-    _mm_packs_epi16(
-      _mm_load_si128((__m128i *) (flags + 8)),
-      _mm_load_si128((__m128i *) (flags + 0))
+  return (int16_t) simde_mm_movemask_epi8(
+    simde_mm_packs_epi16(
+      simde_mm_load_si128((__m128i *) (flags + 8)),
+      simde_mm_load_si128((__m128i *) (flags + 0))
     )
   );
 }
@@ -120,7 +123,7 @@ void rsp_set_flags(uint16_t *flags, uint16_t rt);
 
 // Zeroes out a vector register.
 static inline __m128i rsp_vzero(void) {
-  return _mm_setzero_si128();
+  return simde_mm_setzero_si128();
 }
 
 extern const uint16_t vdiv_mask_table[8][8];

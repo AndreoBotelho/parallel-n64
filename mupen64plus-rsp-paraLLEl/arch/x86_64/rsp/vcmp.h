@@ -7,63 +7,63 @@
 
 static inline __m128i rsp_veq(__m128i vs, __m128i vt,
       __m128i zero, __m128i *le, __m128i eq, __m128i sign) {
-   __m128i equal = _mm_cmpeq_epi16(vs, vt);
+   __m128i equal = simde_mm_cmpeq_epi16(vs, vt);
 
-   *le = _mm_andnot_si128(eq, equal);
+   *le = simde_mm_andnot_si128(eq, equal);
 
 #ifdef __SSE4_1__
-   return _mm_blendv_epi8(vt, vs, *le);
+   return simde_mm_blendv_epi8(vt, vs, *le);
 #else
-   vs = _mm_and_si128(*le, vs);
-   vt = _mm_andnot_si128(*le, vt);
-   return _mm_or_si128(vs, vt);
+   vs = simde_mm_and_si128(*le, vs);
+   vt = simde_mm_andnot_si128(*le, vt);
+   return simde_mm_or_si128(vs, vt);
 #endif
 }
 
 static inline __m128i rsp_vge(__m128i vs, __m128i vt,
       __m128i zero, __m128i *le, __m128i eq, __m128i sign) {
-   __m128i equal = _mm_cmpeq_epi16(vs, vt);
+   __m128i equal = simde_mm_cmpeq_epi16(vs, vt);
 
-   __m128i gt = _mm_cmpgt_epi16(vs, vt);
-   __m128i equalsign = _mm_and_si128(eq, sign);
+   __m128i gt = simde_mm_cmpgt_epi16(vs, vt);
+   __m128i equalsign = simde_mm_and_si128(eq, sign);
 
-   equal = _mm_andnot_si128(equalsign, equal);
-   *le = _mm_or_si128(gt, equal);
+   equal = simde_mm_andnot_si128(equalsign, equal);
+   *le = simde_mm_or_si128(gt, equal);
 
 #ifdef __SSE4_1__
-   return _mm_blendv_epi8(vt, vs, *le);
+   return simde_mm_blendv_epi8(vt, vs, *le);
 #else
-   vs = _mm_and_si128(*le, vs);
-   vt = _mm_andnot_si128(*le, vt);
-   return _mm_or_si128(vs, vt);
+   vs = simde_mm_and_si128(*le, vs);
+   vt = simde_mm_andnot_si128(*le, vt);
+   return simde_mm_or_si128(vs, vt);
 #endif
 }
 
 static inline __m128i rsp_vlt(__m128i vs, __m128i vt,
       __m128i zero, __m128i *le, __m128i eq, __m128i sign) {
-   __m128i equal = _mm_cmpeq_epi16(vs, vt);
-   __m128i lt = _mm_cmplt_epi16(vs, vt);
+   __m128i equal = simde_mm_cmpeq_epi16(vs, vt);
+   __m128i lt = simde_mm_cmplt_epi16(vs, vt);
 
-   equal = _mm_and_si128(eq, equal);
-   equal = _mm_and_si128(sign, equal);
-   *le = _mm_or_si128(lt, equal);
+   equal = simde_mm_and_si128(eq, equal);
+   equal = simde_mm_and_si128(sign, equal);
+   *le = simde_mm_or_si128(lt, equal);
 
 #ifdef __SSE4_1__
-   return _mm_blendv_epi8(vt, vs, *le);
+   return simde_mm_blendv_epi8(vt, vs, *le);
 #else
-   vs = _mm_and_si128(*le, vs);
-   vt = _mm_andnot_si128(*le, vt);
-   return _mm_or_si128(vs, vt);
+   vs = simde_mm_and_si128(*le, vs);
+   vt = simde_mm_andnot_si128(*le, vt);
+   return simde_mm_or_si128(vs, vt);
 #endif
 }
 
 static inline __m128i rsp_vne(__m128i vs, __m128i vt,
       __m128i zero, __m128i *le, __m128i eq, __m128i sign) {
-   __m128i equal = _mm_cmpeq_epi16(vs, vt);
-   __m128i nequal = _mm_cmpeq_epi16(equal, zero);
+   __m128i equal = simde_mm_cmpeq_epi16(vs, vt);
+   __m128i nequal = simde_mm_cmpeq_epi16(equal, zero);
 
-   *le = _mm_and_si128(eq, equal);
-   *le = _mm_or_si128(*le, nequal);
+   *le = simde_mm_and_si128(eq, equal);
+   *le = simde_mm_or_si128(*le, nequal);
 
 #ifdef INTENSE_DEBUG
    for (unsigned i = 0; i < 8; i++)
@@ -75,11 +75,11 @@ static inline __m128i rsp_vne(__m128i vs, __m128i vt,
 #endif
 
 #ifdef __SSE4_1__
-   return _mm_blendv_epi8(vt, vs, *le);
+   return simde_mm_blendv_epi8(vt, vs, *le);
 #else
-   vs = _mm_and_si128(*le, vs);
-   vt = _mm_andnot_si128(*le, vt);
-   return _mm_or_si128(vs, vt);
+   vs = simde_mm_and_si128(*le, vs);
+   vt = simde_mm_andnot_si128(*le, vt);
+   return simde_mm_or_si128(vs, vt);
 #endif
 }
 

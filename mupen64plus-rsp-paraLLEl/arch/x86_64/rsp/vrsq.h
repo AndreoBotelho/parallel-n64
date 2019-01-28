@@ -86,12 +86,12 @@ inline __m128i rsp_vrsqh(RSP::CPUState *rsp,
   rsp->cp2.div_in = elements[e];
 
   // Write out the upper part of the result.
-  vd_mask = _mm_load_si128((__m128i *) vrsq_mask_table[de]);
-  vd = _mm_load_si128((__m128i *) (rsp->cp2.regs + dest));
-  vd = _mm_andnot_si128(vd_mask, vd);
+  vd_mask = simde_mm_load_si128((__m128i *) vrsq_mask_table[de]);
+  vd = simde_mm_load_si128((__m128i *) (rsp->cp2.regs + dest));
+  vd = simde_mm_andnot_si128(vd_mask, vd);
 
-  b_result = _mm_set1_epi16(rsp->cp2.div_out);
-  b_result = _mm_and_si128(vd_mask, b_result);
-  return _mm_or_si128(b_result, vd);
+  b_result = simde_mm_set1_epi16(rsp->cp2.div_out);
+  b_result = simde_mm_and_si128(vd_mask, b_result);
+  return simde_mm_or_si128(b_result, vd);
 }
 

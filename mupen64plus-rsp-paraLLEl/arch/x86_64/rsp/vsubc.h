@@ -9,13 +9,13 @@ static inline __m128i rsp_vsubc(__m128i vs, __m128i vt,
   __m128i zero, __m128i *eq, __m128i *sn) {
   __m128i equal, sat_udiff, sat_udiff_zero;
 
-  sat_udiff = _mm_subs_epu16(vs, vt);
-  equal = _mm_cmpeq_epi16(vs, vt);
-  sat_udiff_zero = _mm_cmpeq_epi16(sat_udiff, zero);
+  sat_udiff = simde_mm_subs_epu16(vs, vt);
+  equal = simde_mm_cmpeq_epi16(vs, vt);
+  sat_udiff_zero = simde_mm_cmpeq_epi16(sat_udiff, zero);
 
-  *eq = _mm_cmpeq_epi16(equal, zero);
-  *sn = _mm_andnot_si128(equal, sat_udiff_zero);
+  *eq = simde_mm_cmpeq_epi16(equal, zero);
+  *sn = simde_mm_andnot_si128(equal, sat_udiff_zero);
 
-  return _mm_sub_epi16(vs, vt);
+  return simde_mm_sub_epi16(vs, vt);
 }
 

@@ -187,7 +187,7 @@ static inline __m128i sse2_pshufb_loop8(__m128i v, const uint8_t *keys) {
   alignas(16) uint8_t temp[(0x80 |128) + 1] ;
   unsigned j;
 
-  _mm_store_si128((__m128i *) temp, v);
+  simde_mm_store_si128((__m128i *) temp, v);
   temp[0x80] = 0;
 
   #if 0
@@ -202,7 +202,7 @@ static inline __m128i sse2_pshufb_loop8(__m128i v, const uint8_t *keys) {
   }
   #endif
 
-  return _mm_load_si128(((__m128i *)temp)+1);
+  return simde_mm_load_si128(((__m128i *)temp)+1);
 }
 static inline __m128i sse2_pshufb(__m128i v, const uint16_t *keys) {
   union {
@@ -252,21 +252,21 @@ __m128i rsp_vect_load_and_shuffle_operand(
   switch(element) {
     case 0:
     case 1:
-      v = _mm_load_si128((__m128i *) src);
+      v = simde_mm_load_si128((__m128i *) src);
       return v;
 
     // element => 0q
     case 2:
-      v = _mm_load_si128((__m128i *) src);
-      v = _mm_shufflelo_epi16(v, _MM_SHUFFLE(2,2,0,0));
-      v = _mm_shufflehi_epi16(v, _MM_SHUFFLE(2,2,0,0));
+      v = simde_mm_load_si128((__m128i *) src);
+      v = simde_mm_shufflelo_epi16(v, SIMDE_MM_SHUFFLE(2,2,0,0));
+      v = simde_mm_shufflehi_epi16(v, SIMDE_MM_SHUFFLE(2,2,0,0));
       return v;
 
     // element => 1q
     case 3:
-      v = _mm_load_si128((__m128i *) src);
-      v = _mm_shufflelo_epi16(v, _MM_SHUFFLE(3,3,1,1));
-      v = _mm_shufflehi_epi16(v, _MM_SHUFFLE(3,3,1,1));
+      v = simde_mm_load_si128((__m128i *) src);
+      v = simde_mm_shufflelo_epi16(v, SIMDE_MM_SHUFFLE(3,3,1,1));
+      v = simde_mm_shufflehi_epi16(v, SIMDE_MM_SHUFFLE(3,3,1,1));
       return v;
 
     // element => 0h ... 3h
@@ -275,10 +275,10 @@ __m128i rsp_vect_load_and_shuffle_operand(
     case 6:
     case 7:
       __asm__("" : "=x"(v)); /* Do not remove. */
-      v = _mm_insert_epi16(v, src[element - 4], 0);
-      v = _mm_insert_epi16(v, src[element - 0], 1);
-      v = _mm_shufflelo_epi16(v, _MM_SHUFFLE(1,1,0,0));
-      v = _mm_shuffle_epi32(v, _MM_SHUFFLE(1,1,0,0));
+      v = simde_mm_insert_epi16(v, src[element - 4], 0);
+      v = simde_mm_insert_epi16(v, src[element - 0], 1);
+      v = simde_mm_shufflelo_epi16(v, SIMDE_MM_SHUFFLE(1,1,0,0));
+      v = simde_mm_shuffle_epi32(v, SIMDE_MM_SHUFFLE(1,1,0,0));
       return v;
 
     // element => 0w ... 7w
@@ -291,9 +291,9 @@ __m128i rsp_vect_load_and_shuffle_operand(
     case 14:
     case 15:
       __asm__("" : "=x"(v)); /* Do not remove. */
-      v = _mm_insert_epi16(v, src[element - 8], 0);
-      v = _mm_unpacklo_epi16(v, v);
-      v = _mm_shuffle_epi32(v, _MM_SHUFFLE(0,0,0,0));
+      v = simde_mm_insert_epi16(v, src[element - 8], 0);
+      v = simde_mm_unpacklo_epi16(v, v);
+      v = simde_mm_shuffle_epi32(v, SIMDE_MM_SHUFFLE(0,0,0,0));
       return v;
   }
 
@@ -327,40 +327,40 @@ void rsp_vload_group1(RSP::CPUState *rsp, uint32_t addr, unsigned element,
     uint32_t aligned_addr_hi = (aligned_addr_lo + 8) & 0xFFF;
     __m128i temp;
 
-    data = _mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_lo));
-    temp = _mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_hi));
-    data = _mm_unpacklo_epi64(data, temp);
+    data = simde_mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_lo));
+    temp = simde_mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_hi));
+    data = simde_mm_unpacklo_epi64(data, temp);
   }
 
   else
-    data = _mm_loadl_epi64((__m128i *) (rsp->dmem + addr));
+    data = simde_mm_loadl_epi64((__m128i *) (rsp->dmem + addr));
 
   // Shift the DQM up to the point where we mux in the data.
 #ifndef __SSSE3__
   dqm = sse2_pshufb(dqm, sll_b2l_keys[element]);
 #else
-  __m128i ekey = _mm_load_si128((__m128i *) (sll_b2l_keys[element]));
-  dqm = _mm_shuffle_epi8(dqm, ekey);
+  __m128i ekey = simde_mm_load_si128((__m128i *) (sll_b2l_keys[element]));
+  dqm = simde_mm_shuffle_epi8(dqm, ekey);
 #endif
 
   // Align the data to the DQM so we can mask it in.
 #ifndef __SSSE3__
   data = sse2_pshufb(data, ror_b2l_keys[ror & 0xF]);
 #else
-  ekey = _mm_load_si128((__m128i *) (ror_b2l_keys[ror & 0xF]));
-  data = _mm_shuffle_epi8(data, ekey);
+  ekey = simde_mm_load_si128((__m128i *) (ror_b2l_keys[ror & 0xF]));
+  data = simde_mm_shuffle_epi8(data, ekey);
 #endif
 
   // Mask and mux in the data.
 #ifdef __SSE4_1__
-  reg = _mm_blendv_epi8(reg, data, dqm);
+  reg = simde_mm_blendv_epi8(reg, data, dqm);
 #else
-  data = _mm_and_si128(dqm, data);
-  reg = _mm_andnot_si128(dqm, reg);
-  reg = _mm_or_si128(data, reg);
+  data = simde_mm_and_si128(dqm, data);
+  reg = simde_mm_andnot_si128(dqm, reg);
+  reg = simde_mm_or_si128(data, reg);
 #endif
 
-  _mm_store_si128((__m128i *) regp, reg);
+  simde_mm_store_si128((__m128i *) regp, reg);
 }
 
 //
@@ -394,22 +394,22 @@ void rsp_vload_group2(RSP::CPUState *rsp, uint32_t addr, unsigned element,
     datalow = datahigh | datalow;
     datalow = __builtin_bswap64(datalow);
 
-    data = _mm_loadl_epi64((__m128i *) &datalow);
+    data = simde_mm_loadl_epi64((__m128i *) &datalow);
   }
 
   else
-    data = _mm_loadl_epi64((__m128i *) (rsp->dmem + addr));
+    data = simde_mm_loadl_epi64((__m128i *) (rsp->dmem + addr));
 
   // "Unpack" the data.
-  zero = _mm_setzero_si128();
-  data = _mm_unpacklo_epi8(zero, data);
+  zero = simde_mm_setzero_si128();
+  data = simde_mm_unpacklo_epi8(zero, data);
 
 #if 0
   if (rsp->pipeline.exdf_latch.request.type != RSP_MEM_REQUEST_PACK)
 #endif
-    data = _mm_srli_epi16(data, 1);
+    data = simde_mm_srli_epi16(data, 1);
 
-  _mm_store_si128((__m128i *) regp, data);
+  simde_mm_store_si128((__m128i *) regp, data);
 }
 
 //
@@ -426,7 +426,7 @@ void rsp_vload_group4(RSP::CPUState *rsp, uint32_t addr, unsigned element,
   unsigned offset = addr & 0xF;
   unsigned ror;
 
-  __m128i data = _mm_load_si128((__m128i *) (rsp->dmem + aligned_addr));
+  __m128i data = simde_mm_load_si128((__m128i *) (rsp->dmem + aligned_addr));
 
   // TODO: Use of element is almost certainly wrong...
   ror = 16 - element + offset;
@@ -434,27 +434,27 @@ void rsp_vload_group4(RSP::CPUState *rsp, uint32_t addr, unsigned element,
 #if 0
   if (rsp->pipeline.exdf_latch.request.type != RSP_MEM_REQUEST_QUAD)
 #endif
-    dqm = _mm_cmpeq_epi8(_mm_setzero_si128(), dqm);
+    dqm = simde_mm_cmpeq_epi8(simde_mm_setzero_si128(), dqm);
 
 #ifndef __SSSE3__
   data = sse2_pshufb(data, ror_b2l_keys[ror & 0xF]);
   dqm = sse2_pshufb(dqm, ror_b2l_keys[ror & 0xF]);
 #else
-  __m128i dkey = _mm_load_si128((__m128i *) (ror_b2l_keys[ror & 0xF]));
-  data = _mm_shuffle_epi8(data, dkey);
-  dqm = _mm_shuffle_epi8(dqm, dkey);
+  __m128i dkey = simde_mm_load_si128((__m128i *) (ror_b2l_keys[ror & 0xF]));
+  data = simde_mm_shuffle_epi8(data, dkey);
+  dqm = simde_mm_shuffle_epi8(dqm, dkey);
 #endif
 
   // Mask and mux in the data.
 #ifdef __SSE4_1__
-  data = _mm_blendv_epi8(reg, data, dqm);
+  data = simde_mm_blendv_epi8(reg, data, dqm);
 #else
-  data = _mm_and_si128(dqm, data);
-  reg = _mm_andnot_si128(dqm, reg);
-  data = _mm_or_si128(data, reg);
+  data = simde_mm_and_si128(dqm, data);
+  reg = simde_mm_andnot_si128(dqm, reg);
+  data = simde_mm_or_si128(data, reg);
 #endif
 
-  _mm_store_si128((__m128i *) regp, data);
+  simde_mm_store_si128((__m128i *) regp, data);
 }
 
 //
@@ -476,16 +476,16 @@ void rsp_vstore_group1(RSP::CPUState *rsp, uint32_t addr, unsigned element,
 #ifndef __SSSE3__
   dqm = sse2_pshufb(dqm, sll_l2b_keys[offset]);
 #else
-  __m128i ekey = _mm_load_si128((__m128i *) (sll_l2b_keys[offset]));
-  dqm = _mm_shuffle_epi8(dqm, ekey);
+  __m128i ekey = simde_mm_load_si128((__m128i *) (sll_l2b_keys[offset]));
+  dqm = simde_mm_shuffle_epi8(dqm, ekey);
 #endif
 
   // Rotate the reg to align with the DQM.
 #ifndef __SSSE3__
   reg = sse2_pshufb(reg, ror_l2b_keys[ror & 0xF]);
 #else
-  ekey = _mm_load_si128((__m128i *) (ror_l2b_keys[ror & 0xF]));
-  reg = _mm_shuffle_epi8(reg, ekey);
+  ekey = simde_mm_load_si128((__m128i *) (ror_l2b_keys[ror & 0xF]));
+  reg = simde_mm_shuffle_epi8(reg, ekey);
 #endif
 
   // Always load in 8-byte chunks to emulate wraparound.
@@ -494,38 +494,38 @@ void rsp_vstore_group1(RSP::CPUState *rsp, uint32_t addr, unsigned element,
     uint32_t aligned_addr_hi = (aligned_addr_lo + 8) & 0xFFF;
     __m128i temp;
 
-    data = _mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_lo));
-    temp = _mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_hi));
-    data = _mm_unpacklo_epi64(data, temp);
+    data = simde_mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_lo));
+    temp = simde_mm_loadl_epi64((__m128i *) (rsp->dmem + aligned_addr_hi));
+    data = simde_mm_unpacklo_epi64(data, temp);
 
   // Mask and mux in the data.
 #ifdef __SSE4_1__
-    data = _mm_blendv_epi8(data, reg, dqm);
+    data = simde_mm_blendv_epi8(data, reg, dqm);
 #else
-    data = _mm_andnot_si128(dqm, data);
-    reg = _mm_and_si128(dqm, reg);
-    data = _mm_or_si128(data, reg);
+    data = simde_mm_andnot_si128(dqm, data);
+    reg = simde_mm_and_si128(dqm, reg);
+    data = simde_mm_or_si128(data, reg);
 #endif
 
-    _mm_storel_epi64((__m128i *) (rsp->dmem + aligned_addr_lo), data);
+    simde_mm_storel_epi64((__m128i *) (rsp->dmem + aligned_addr_lo), data);
 
-    data = _mm_srli_si128(data, 8);
-    _mm_storel_epi64((__m128i *) (rsp->dmem + aligned_addr_hi), data);
+    data = simde_mm_srli_si128(data, 8);
+    simde_mm_storel_epi64((__m128i *) (rsp->dmem + aligned_addr_hi), data);
   }
 
   else {
-    data = _mm_loadl_epi64((__m128i *) (rsp->dmem + addr));
+    data = simde_mm_loadl_epi64((__m128i *) (rsp->dmem + addr));
 
   // Mask and mux in the data.
 #ifdef __SSE4_1__
-    data = _mm_blendv_epi8(data, reg, dqm);
+    data = simde_mm_blendv_epi8(data, reg, dqm);
 #else
-    data = _mm_andnot_si128(dqm, data);
-    reg = _mm_and_si128(dqm, reg);
-    data = _mm_or_si128(data, reg);
+    data = simde_mm_andnot_si128(dqm, data);
+    reg = simde_mm_and_si128(dqm, reg);
+    data = simde_mm_or_si128(data, reg);
 #endif
 
-    _mm_storel_epi64((__m128i *) (rsp->dmem + addr), data);
+    simde_mm_storel_epi64((__m128i *) (rsp->dmem + addr), data);
   }
 }
 
@@ -547,13 +547,13 @@ void rsp_vstore_group2(RSP::CPUState *rsp, uint32_t addr, unsigned element,
 #if 0
   if (rsp->pipeline.exdf_latch.request.type != RSP_MEM_REQUEST_PACK)
 #endif
-    reg = _mm_slli_epi16(reg, 1);
+    reg = simde_mm_slli_epi16(reg, 1);
 
-  reg = _mm_srai_epi16(reg, 8);
-  reg = _mm_packs_epi16(reg, reg);
+  reg = simde_mm_srai_epi16(reg, 8);
+  reg = simde_mm_packs_epi16(reg, reg);
 
   // TODO: Always store in 8-byte chunks to emulate wraparound.
-  _mm_storel_epi64((__m128i *) (rsp->dmem + addr), reg);
+  simde_mm_storel_epi64((__m128i *) (rsp->dmem + addr), reg);
 }
 
 //
@@ -566,7 +566,7 @@ void rsp_vstore_group4(RSP::CPUState *rsp, uint32_t addr, unsigned element,
   unsigned offset = addr & 0xF;
   unsigned rol = offset;
 
-  __m128i data = _mm_load_si128((__m128i *) (rsp->dmem + aligned_addr));
+  __m128i data = simde_mm_load_si128((__m128i *) (rsp->dmem + aligned_addr));
 
 #if 0
   if (rsp->pipeline.exdf_latch.request.type == RSP_MEM_REQUEST_QUAD)
@@ -577,24 +577,24 @@ void rsp_vstore_group4(RSP::CPUState *rsp, uint32_t addr, unsigned element,
 
   // TODO: How is this adjusted for SRV when e != 0?
   else
-    dqm = _mm_cmpeq_epi8(_mm_setzero_si128(), dqm);
+    dqm = simde_mm_cmpeq_epi8(simde_mm_setzero_si128(), dqm);
 
 #ifndef __SSSE3__
   reg = sse2_pshufb(reg, rol_l2b_keys[rol & 0xF]);
 #else
-  __m128i ekey = _mm_load_si128((__m128i *) (rol_l2b_keys[rol & 0xF]));
-  reg = _mm_shuffle_epi8(reg, ekey);
+  __m128i ekey = simde_mm_load_si128((__m128i *) (rol_l2b_keys[rol & 0xF]));
+  reg = simde_mm_shuffle_epi8(reg, ekey);
 #endif
 
   // Mask and mux out the data, write.
 #ifdef __SSE4_1__
-  data = _mm_blendv_epi8(data, reg, dqm);
+  data = simde_mm_blendv_epi8(data, reg, dqm);
 #else
-  reg = _mm_and_si128(dqm, reg);
-  data = _mm_andnot_si128(dqm, data);
-  data = _mm_or_si128(data, reg);
+  reg = simde_mm_and_si128(dqm, reg);
+  data = simde_mm_andnot_si128(dqm, data);
+  data = simde_mm_or_si128(data, reg);
 #endif
 
-  _mm_store_si128((__m128i *) (rsp->dmem + aligned_addr), data);
+  simde_mm_store_si128((__m128i *) (rsp->dmem + aligned_addr), data);
 }
 

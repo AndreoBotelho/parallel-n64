@@ -6,11 +6,11 @@
 //
 
 static inline __m128i rsp_vand(__m128i vs, __m128i vt) {
-  return _mm_and_si128(vs, vt);
+  return simde_mm_and_si128(vs, vt);
 }
 
 static inline __m128i rsp_vnand(__m128i vs, __m128i vt) {
-  __m128i vd = _mm_and_si128(vs, vt);
-  return _mm_xor_si128(vd, _mm_set1_epi32(0xffffffffu));
+  __m128i vd = simde_mm_and_si128(vs, vt);
+  return simde_mm_xor_si128(vd, simde_mm_set1_epi32(0xffffffffu));
 }
 

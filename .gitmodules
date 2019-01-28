@@ -1,0 +1,3 @@
+[submodule "mupen64plus-rsp-paraLLEl/arch/x86_64/rsp/simde"]
+	path = mupen64plus-rsp-paraLLEl/arch/x86_64/rsp/simde
+	url = https://github.com/nemequ/simde.git

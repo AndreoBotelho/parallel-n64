@@ -220,19 +220,16 @@ ifneq (,$(findstring unix,$(platform)))
       endif
 
  #######################################
-   # Generic ARMV8 - cross - No GL 
+   # Generic ARMV8 - cross - no GL 
    else ifneq (,$(findstring armv8,$(platform)))
-      CC = aarch64-linux-gnu-gcc
-      CXX = aarch64-linux-gnu-g++
-      CPUFLAGS += -DNO_ASM -DARM -DARM_ASM -DDONT_WANT_ARM_OPTIMIZATIONS -DARM_FIX -DCLASSIC -DARM64
+      CC = aarch64-linux-gnu-clang
+      CXX = aarch64-linux-gnu-clang++
+      CPUFLAGS += -DNO_ASM -DARM -DARM_ASM -DDONT_WANT_ARM_OPTIMIZATIONS -DARM_FIX -DCLASSIC -DARM64 -D__ARM_NEON__
       LDFLAGS += -static-libgcc -static-libstdc++
       GLES = 0
       HAVE_NEON = 0
+      GL_LIB := $(filter-out -lGL,$(GL_LIB))
       WITH_DYNAREC=aarch64
-      ifneq (,$(findstring neon,$(platform)))
-         CPUFLAGS += -D__NEON_OPT -mfpu=neon
-         HAVE_NEON = 1
-      endif
  #######################################
    
    # Generic ARM

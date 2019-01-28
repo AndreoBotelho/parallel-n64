@@ -10,21 +10,21 @@ static inline __m128i rsp_vmadh_vmudh(__m128i vs, __m128i vt,
   __m128i zero, __m128i *acc_lo, __m128i *acc_md, __m128i *acc_hi) {
   __m128i lo, hi, overflow_mask;
 
-  lo = _mm_mullo_epi16(vs, vt); 
-  hi = _mm_mulhi_epi16(vs, vt); 
+  lo = simde_mm_mullo_epi16(vs, vt); 
+  hi = simde_mm_mulhi_epi16(vs, vt); 
 
   // VMADH
   if (VMADH) {
     // Tricky part: start accumulate everything.
     // Get/keep the carry as we'll add it in later.
-    overflow_mask = _mm_adds_epu16(*acc_md, lo); 
-    *acc_md = _mm_add_epi16(*acc_md, lo); 
+    overflow_mask = simde_mm_adds_epu16(*acc_md, lo); 
+    *acc_md = simde_mm_add_epi16(*acc_md, lo); 
 
-    overflow_mask = _mm_cmpeq_epi16(*acc_md, overflow_mask);
-    overflow_mask = _mm_cmpeq_epi16(overflow_mask, zero);
+    overflow_mask = simde_mm_cmpeq_epi16(*acc_md, overflow_mask);
+    overflow_mask = simde_mm_cmpeq_epi16(overflow_mask, zero);
 
-    hi = _mm_sub_epi16(hi, overflow_mask); 
-    *acc_hi = _mm_add_epi16(*acc_hi, hi);
+    hi = simde_mm_sub_epi16(hi, overflow_mask); 
+    *acc_hi = simde_mm_add_epi16(*acc_hi, hi);
   }
 
   // VMUDH

@@ -10,14 +10,14 @@ static inline __m128i rsp_vadd(__m128i vs, __m128i vt,
   __m128i vd, minimum, maximum;
 
   // VCC uses unsaturated arithmetic.
-  vd = _mm_add_epi16(vs, vt);
-  *acc_lo = _mm_sub_epi16(vd, carry);
+  vd = simde_mm_add_epi16(vs, vt);
+  *acc_lo = simde_mm_sub_epi16(vd, carry);
 
   // VD is the signed sum of the two sources and the carry. Since we
   // have to saturate the sum of all three, we have to be clever.
-  minimum = _mm_min_epi16(vs, vt);
-  maximum = _mm_max_epi16(vs, vt);
-  minimum = _mm_subs_epi16(minimum, carry);
-  return _mm_adds_epi16(minimum, maximum);
+  minimum = simde_mm_min_epi16(vs, vt);
+  maximum = simde_mm_max_epi16(vs, vt);
+  minimum = simde_mm_subs_epi16(minimum, carry);
+  return simde_mm_adds_epi16(minimum, maximum);
 }
 
