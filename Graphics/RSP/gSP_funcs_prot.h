@@ -60,8 +60,6 @@ void glide64gSPCIVertex(uint32_t v, uint32_t n, uint32_t v0);
 void glide64gSPSetVertexColorBase(uint32_t base);
 void glide64gSPSetDMATexOffset(uint32_t addr);
 
-void gln64gSPDlistCount(uint32_t count, uint32_t v);
-
 #ifdef __cplusplus
 }
 #endif
@@ -88,11 +86,16 @@ void gln64gSP4Triangles( int32_t v00, int32_t v01, int32_t v02,
                     int32_t v30, int32_t v31, int32_t v32 );
 void gln64gSPViewport(uint32_t v);
 void gln64gSPForceMatrix( uint32_t mptr );
+void gln64gSPDlistCount(uint32_t count, uint32_t v);
 
 #ifndef GLIDEN64
 #ifdef __cplusplus
 }
 #endif
+#endif
+
+#ifdef GLIDEN64
+void gln64gSPDlistCount(uint32_t count, uint32_t v);
 #endif
 
 #ifdef __cplusplus

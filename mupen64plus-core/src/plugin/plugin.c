@@ -286,7 +286,11 @@ void plugin_connect_all(enum gfx_plugin_type gfx_plugin, enum rsp_plugin_type rs
 #endif
       case GFX_GLN64:
 #if defined(HAVE_OPENGL) || defined(HAVE_OPENGLES)
+#if !defined(GLIDEN64)
          gfx = gfx_gln64;
+#else
+         gfx = gfx_glide64;
+#endif
          break;
 #endif
       default:

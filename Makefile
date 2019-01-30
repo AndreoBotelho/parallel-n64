@@ -5,14 +5,14 @@ WITH_CRC=brumme
 FORCE_GLES=0
 HAVE_OPENGL=1
 HAVE_VULKAN_DEBUG=0
-GLIDEN64=0
-GLIDEN64CORE=0
+GLIDEN64=1
+GLIDEN64CORE=1
 GLIDEN64ES=0
 HAVE_RSP_DUMP=0
 HAVE_RDP_DUMP=0
 HAVE_RICE=1
 HAVE_PARALLEL=1
-HAVE_PARALLEL_RSP=1
+HAVE_PARALLEL_RSP=0
 STATIC_LINKING=0
 
 DYNAFLAGS :=
@@ -129,6 +129,9 @@ ifneq (,$(findstring unix,$(platform)))
    else ifeq ($(HAVE_OPENGL),1)
       GL_LIB := -lGL
    endif
+   ifeq ($(GLIDEN64),1)
+      CPUFLAGS += -DMUPENPLUSAPI
+   endif
 
    # Raspberry Pi
    ifneq (,$(findstring rpi,$(platform)))
@@ -222,9 +225,9 @@ ifneq (,$(findstring unix,$(platform)))
  #######################################
    # Generic ARMV8 - cross - no GL 
    else ifneq (,$(findstring armv8,$(platform)))
-      CC = aarch64-linux-gnu-clang
-      CXX = aarch64-linux-gnu-clang++
-      CPUFLAGS += -DNO_ASM -DARM -DARM_ASM -DDONT_WANT_ARM_OPTIMIZATIONS -DARM_FIX -DCLASSIC -DARM64 -D__ARM_NEON__
+      CC = clang
+      CXX = clang++
+      CPUFLAGS += -arch=aarch64 -DNO_ASM -DARM -DARM_ASM -DDONT_WANT_ARM_OPTIMIZATIONS -DARM_FIX -DCLASSIC -DARM64 -D__ARM_NEON__
       LDFLAGS += -static-libgcc -static-libstdc++
       GLES = 0
       HAVE_NEON = 0
@@ -817,7 +820,9 @@ ifneq ($(findstring Darwin,$(UNAME)),)
    CPUOPTS += -flto
 else ifeq ($(findstring msvc,$(platform)),)
 ifneq ($(platform), emscripten)
+ifeq ($(platform), armv8)
    CPUOPTS += -fipa-pta
+endif
 endif
 endif
 
